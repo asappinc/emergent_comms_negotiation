@@ -1,0 +1,10 @@
+name: emerge
+channels:
+- pytorch
+- defaults
+dependencies:
+- python=3.6
+- pytorch
+- torchvision
+- cuda91
+- matplotlib

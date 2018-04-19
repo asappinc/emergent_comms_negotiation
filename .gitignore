@@ -104,3 +104,6 @@ model_saves/*
 merge.yaml
 merge.sh
 
+# vim
+*.swp
+

@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 
-def plot_reward(logfile, min_y, max_y, title, max_x):
+def plot_reward(logfile, title, min_y, max_y, max_x):
     """
     logfiles separated by : are combined
     logfiles separated by , go in separate plots
@@ -69,23 +69,17 @@ def plot_reward(logfile, min_y, max_y, title, max_x):
     plt.xlabel('Episodes of 128 games (thousands)')
     plt.ylabel('Reward')
     plt.legend()
-    plt.savefig('/tmp/out-reward.png')
+    plt.show()
+    # plt.savefig('/tmp/out-reward.png')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parsers = parser.add_subparsers()
-
-    parser_ = parsers.add_parser('plot-reward')
-    parser_.add_argument('--logfile', type=str, required=True)
-    parser_.add_argument('--max-x', type=int)
-    parser_.add_argument('--min-y', type=float)
-    parser_.add_argument('--max-y', type=float)
-    parser_.add_argument('--title', type=str)
-    parser_.set_defaults(func=plot_reward)
+    parser.add_argument('logfile', type=str)
+    parser.add_argument('--title', type=str)
+    parser.add_argument('--max-x', type=int)
+    parser.add_argument('--min-y', type=float)
+    parser.add_argument('--max-y', type=float)
 
     args = parser.parse_args()
-    func = args.func
-    args_dict = args.__dict__
-    del args_dict['func']
-    func(**args_dict)
+    plot_reward(**vars(args))

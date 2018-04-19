@@ -1,19 +1,21 @@
-import json
-import time
 import argparse
-import os
 import datetime
+import json
+import os
+import time
 from os import path
+
 import numpy as np
 import torch
-from torch import autograd, optim, nn
+from torch import optim
 from torch.autograd import Variable
-import torch.nn.functional as F
 
-import nets
-import sampling
-import rewards_lib
-import alive_sieve
+from src.alive_sieve import AliveSieve, SievePlayback
+from src.nets import AgentModel
+from src.rewards_lib import calc_rewards
+from src.sampling import (generate_test_batches,
+                          generate_training_batch,
+                          hash_batches)
 
 
 def render_action(t, s, prop, term):
@@ -109,7 +111,7 @@ def run_episode(
     if enable_cuda:
         s.cuda()
 
-    sieve = alive_sieve.AliveSieve(batch_size=batch_size, enable_cuda=enable_cuda)
+    sieve = AliveSieve(batch_size=batch_size, enable_cuda=enable_cuda)
     actions_by_timestep = []
     alive_masks = []
 
@@ -171,7 +173,7 @@ def run_episode(
                 prop=this_proposal
             )
 
-        new_rewards = rewards_lib.calc_rewards(
+        new_rewards = calc_rewards(
             t=t,
             s=s,
             term=term_a
@@ -225,15 +227,15 @@ def run(enable_proposal, enable_comms, seed, prosocial, logfile, model_file, bat
         train_r = np.random
 
     test_r = np.random.RandomState(test_seed)
-    test_batches = sampling.generate_test_batches(batch_size=batch_size, num_batches=5, random_state=test_r)
-    test_hashes = sampling.hash_batches(test_batches)
+    test_batches = generate_test_batches(batch_size=batch_size, num_batches=5, random_state=test_r)
+    test_hashes = hash_batches(test_batches)
 
     episode = 0
     start_time = time.time()
     agent_models = []
     agent_opts = []
     for i in range(2):
-        model = nets.AgentModel(
+        model = AgentModel(
             enable_comms=enable_comms,
             enable_proposal=enable_proposal,
             term_entropy_reg=term_entropy_reg,
@@ -280,7 +282,7 @@ def run(enable_proposal, enable_comms, seed, prosocial, logfile, model_file, bat
     while True:
         render = time.time() - last_print >= render_every_seconds
         # render = True
-        batch = sampling.generate_training_batch(batch_size=batch_size, test_hashes=test_hashes, random_state=train_r)
+        batch = generate_training_batch(batch_size=batch_size, test_hashes=test_hashes, random_state=train_r)
         actions, rewards, steps, alive_masks, entropy_loss_by_agent, \
                 _term_matches_argmax_count, _num_policy_runs, _utt_matches_argmax_count, _utt_stochastic_draws, \
                 _prop_matches_argmax_count, _prop_stochastic_draws = run_episode(
@@ -311,7 +313,7 @@ def run(enable_proposal, enable_comms, seed, prosocial, logfile, model_file, bat
                     rewards_by_agent.append(baselined_rewards[:, 2])
                 else:
                     rewards_by_agent.append(baselined_rewards[:, i])
-            sieve_playback = alive_sieve.SievePlayback(alive_masks, enable_cuda=enable_cuda)
+            sieve_playback = SievePlayback(alive_masks, enable_cuda=enable_cuda)
             for t, global_idxes in sieve_playback:
                 agent = t % 2
                 if len(actions[t]) > 0:

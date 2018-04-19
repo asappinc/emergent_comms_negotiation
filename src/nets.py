@@ -106,7 +106,7 @@ class UtterancePolicy(nn.Module):
             embedded = self.embedding(Variable(last_token))
             h, c = self.lstm(embedded, (h, c))
             logits = self.h1(h)
-            probs = F.softmax(logits)
+            probs = F.softmax(logits, dim=1)
 
             _, res_greedy = probs.data.max(1)
             res_greedy = res_greedy.view(-1, 1).long()
@@ -156,7 +156,7 @@ class ProposalPolicy(nn.Module):
         proposal = type_constr.LongTensor(batch_size, self.num_items).fill_(0)
         for i in range(self.num_items):
             logits = self.fcs[i](x)
-            probs = F.softmax(logits)
+            probs = F.softmax(logits, dim=1)
 
             _, res_greedy = probs.data.max(1)
             res_greedy = res_greedy.view(-1, 1).long()
